@@ -97,3 +97,79 @@ User
 - Multiple users support
 - Better querying system?
 - Possibly caching/indexing?
+
+## Storage And Loading Conventions
+
+### Data Layout
+
+Current layout per repository and user:
+
+data/
+- repo_name/
+	- metadata.json
+	- user_a/
+		- authored.jsonl
+		- reviewed.jsonl
+		- tested.jsonl
+	- user_b/
+		- authored.jsonl
+		- reviewed.jsonl
+		- tested.jsonl
+
+Notes:
+- User directory naming is sanitized by scripts.
+- Contribution filenames are enum-aligned and stable: authored, reviewed, tested.
+
+### Repo Metadata (v1)
+
+Each repository directory should have metadata.json for config and refresh state.
+
+Suggested fields for v1:
+- schema_version
+- repo_name
+- repo_path
+- users (canonical user emails)
+- contribution_kinds (authored, reviewed, tested)
+- last_refresh_at
+
+Reserved for later:
+- checkpoints (for incremental refresh)
+
+### Data Loading Semantics
+
+Keep loading behavior simple for v1:
+- Missing data is treated as empty data.
+- Unknown files are ignored.
+- Use lenient JSONL parsing by default (skip malformed lines and report warnings).
+- Strict mode can be added later if needed.
+
+### Refresh Strategy
+
+Refresh rebuilds analytics data from local repository state.
+
+Boundaries:
+- Tool does not perform git fetch or git pull.
+- User is responsible for updating local repository state.
+
+Roadmap:
+- v1: full refresh only.
+- v1.1: selective refresh by user and/or contribution kind.
+- v2: incremental refresh using stored checkpoints.
+
+## User Lifecycle
+
+### Initial Setup
+
+1. User selects repository path.
+2. User enters list of users to monitor.
+3. Scripts generate JSONL data for each user and contribution kind.
+4. Data is stored under data/<repo>/<user>/.
+
+### Normal Usage
+
+1. Start tool.
+2. Select existing repository or add a new repository.
+3. Select existing user or add a new user.
+4. Select contribution kind.
+5. Load contribution data.
+6. Run analytics.
